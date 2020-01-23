@@ -1,0 +1,49 @@
+{
+  "name": "@luckbox/mq-clients",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf dist/ && tsc -d",
+    "dev": "tsc-watch --onSuccess \"node ./dist/index.js\"",
+    "test": "jest",
+    "test:watch": "jest --watchAll",
+    "lint:staged": "lint-staged",
+    "prepublish": "npm run build",
+    "precommit": "npm run lint:staged"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@luckbox/eslint-rules": "^2.2.1",
+    "@types/amqplib": "^0.5.13",
+    "@types/core-js": "^2.5.2",
+    "@types/jest": "^24.0.24",
+    "@types/p-queue": "^3.2.1",
+    "@typescript-eslint/parser": "^2.17.0",
+    "eslint": "^6.8.0",
+    "husky": "^4.0.10",
+    "jest": "^24.9.0",
+    "jest-serial-runner": "^1.1.0",
+    "lint-staged": "^10.0.1",
+    "ts-jest": "^24.2.0",
+    "tsc-watch": "^4.1.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run precommit"
+    }
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --cache --fix",
+      "git add"
+    ]
+  },
+  "dependencies": {
+    "typescript": "^3.7.5",
+    "amqplib": "^0.5.5",
+    "p-queue": "^6.2.1"
+  }
+}
