@@ -45,5 +45,13 @@
     "typescript": "^3.7.5",
     "amqplib": "^0.5.5",
     "p-queue": "^6.2.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuckboxGG/mq-clients.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LuckboxGG/mq-clients/issues"
+  },
+  "homepage": "https://github.com/LuckboxGG/mq-clients#readme"
 }
