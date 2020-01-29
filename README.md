@@ -5,15 +5,8 @@ Each implementation must conform the unified interface, which defines a single c
 
 ### Installing
 
-First install the required dependencies by running,
 ```
-npm install
-```
-
-then create the build 
-
-```
-npm run build
+npm install -s @luckbox/mq-clients
 ```
 
 ## Running the tests
