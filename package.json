@@ -1,6 +1,6 @@
 {
   "name": "@luckbox/mq-clients",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -9,7 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watchAll",
     "lint:staged": "lint-staged",
-    "prepublish": "npm run build",
+    "prepublishOnly": "npm run build",
     "precommit": "npm run lint:staged"
   },
   "keywords": [],
