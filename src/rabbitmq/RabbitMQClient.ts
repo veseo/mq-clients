@@ -190,7 +190,7 @@ class RabbitMQClient implements MQClient {
         return;
       }
 
-      await callback(parsed);
+      callback(parsed);
     }, { noAck: true });
   }
 
