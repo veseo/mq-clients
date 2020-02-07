@@ -182,12 +182,15 @@ class RabbitMQClient implements MQClient {
     }
 
     await this.channel.consume(queue.queue, async (msg) => {
+      let parsed;
       try {
-        const parsed = this.parseBuffer(msg.content);
-        await callback(parsed);
+        parsed = this.parseBuffer(msg.content);
       } catch (err) {
         this.logError(err);
+        return;
       }
+
+      callback(parsed);
     }, { noAck: true });
   }
 

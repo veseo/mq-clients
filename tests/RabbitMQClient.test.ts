@@ -227,21 +227,6 @@ describe('RabbitMQClient', () => {
       await sleep(testRetryTimeout);
     });
 
-    it('should handle client callback errors gracefully', async () => {
-      const mockQueue = createMockQueue();
-      mockChannel.assertQueue.mockResolvedValueOnce(mockQueue);
-
-      await client.connect();
-
-      const mockCallback = jest.fn();
-      mockCallback.mockRejectedValue(new Error('We fucked up!'));
-      await client.subscribe('my-namespace', mockCallback);
-
-      const dummyData = { bar: 'foo' };
-      triggerMockChannelConsumer(mockQueue.queue, dummyData);
-      await sleep(testRetryTimeout);
-    });
-
     it('should recreate the previously created queues on reconnect', async () => {
       await client.connect();
       await client.subscribe('my-namespace', noop);
@@ -321,24 +306,6 @@ describe('RabbitMQClient', () => {
       await sleep(testRetryTimeout);
 
       expect(mockCallback).not.toHaveBeenCalled();
-    });
-
-    it('should handle client callback errors gracefully after reconnect', async () => {
-      await client.connect();
-
-      const errorThrowingCallback = () => {
-        throw new SyntaxError('I fucked up.');
-      };
-      await client.subscribe('my-namespace', errorThrowingCallback);
-
-      const mockQueue = createMockQueue('queue-2.0');
-      mockChannel.assertQueue.mockResolvedValue(mockQueue);
-
-      triggerMockConnectionListener('error', new Error('Something went wrong'));
-      await sleep(testRetryTimeout);
-
-      triggerMockChannelConsumer(mockQueue.queue, 'asd');
-      await sleep(testRetryTimeout);
     });
   });
 
