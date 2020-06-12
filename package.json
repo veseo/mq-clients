@@ -1,6 +1,6 @@
 {
   "name": "@luckbox/mq-clients",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -20,6 +20,7 @@
     "@types/amqplib": "^0.5.13",
     "@types/core-js": "^2.5.2",
     "@types/jest": "^24.0.24",
+    "@types/lodash": "^4.14.155",
     "@types/p-queue": "^3.2.1",
     "@typescript-eslint/parser": "^2.17.0",
     "eslint": "^6.8.0",
@@ -27,6 +28,8 @@
     "jest": "^24.9.0",
     "jest-serial-runner": "^1.1.0",
     "lint-staged": "^10.0.1",
+    "lodash": "^4.17.15",
+    "ts-essentials": "^6.0.5",
     "ts-jest": "^24.2.0",
     "tsc-watch": "^4.1.0"
   },

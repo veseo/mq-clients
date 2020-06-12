@@ -1,3 +1,7 @@
+import { AssertionError } from 'assert';
+import { DeepPartial } from 'ts-essentials';
+import { merge } from 'lodash';
+
 import {
   mockAmqplib,
   mockChannel,
@@ -9,79 +13,69 @@ import {
   resetMocks,
 } from './mocks';
 
-import { AssertionError } from 'assert';
 import {
   RabbitMQClient,
   RabbitMQConstructorParams,
   MQConnectionError,
 } from '../src/index';
 
+function createConstructorParams(overrides: DeepPartial<RabbitMQConstructorParams> = {}): RabbitMQConstructorParams {
+  const defaultConstructorParams: RabbitMQConstructorParams = {
+    retryTimeout: 100,
+    exchange: {
+      type: 'fanout',
+    },
+    amqp: {
+      protocol: 'p',
+      hostname: 'h',
+      port: 1,
+      username: 'u',
+      password: 'p',
+      locale: 'l',
+      frameMax: 1,
+      heartbeat: 1,
+      vhost: '',
+    },
+  };
+
+  return merge(defaultConstructorParams, overrides);
+}
+
 const sleep = (msec: number) => new Promise((resolve) => setTimeout(resolve, msec));
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-const noop = () => {};
+const noop = () => { };
 
 describe('RabbitMQClient', () => {
   let client: RabbitMQClient;
   describe('Fanout specs', () => {
-    const defaultConstructorParams: RabbitMQConstructorParams = {
-      retryTimeout: 100,
-      exchange: {
-        type: 'fanout',
-      },
-    };
-
     beforeEach(() => {
       resetMocks();
-      client = new RabbitMQClient(defaultConstructorParams);
+      client = new RabbitMQClient(createConstructorParams());
     });
 
+    const defaultConstructorParams = createConstructorParams();
     const testRetryTimeout = defaultConstructorParams.retryTimeout + 200;
 
     it('should throw AssertionError when constructing with with direct exchange and not supplying the name of the exchange', async () => {
-      const params: RabbitMQConstructorParams = {
-        amqp: {},
-        retryTimeout: 10,
+      expect(() => new RabbitMQClient(createConstructorParams({
         exchange: {
           type: 'direct',
         },
-      };
-
-      expect(() => new RabbitMQClient(params)).toThrow(AssertionError);
+      }))).toThrow(AssertionError);
     });
 
     it('should throw AssertionError when constructing with with direct exchange and supplying empty exchange', async () => {
-      const params: RabbitMQConstructorParams = {
-        amqp: {},
-        retryTimeout: 10,
+      expect(() => new RabbitMQClient(createConstructorParams({
         exchange: {
           type: 'direct',
           name: '',
         },
-      };
-
-      expect(() => new RabbitMQClient(params)).toThrow(AssertionError);
+      }))).toThrow(AssertionError);
     });
 
     it('should call the amqplib.connect method with the correct opts from the constructor', async () => {
-      const params: RabbitMQConstructorParams = {
-        amqp: {
-          protocol: 'p',
-          hostname: 'h',
-          port: 1,
-          username: 'u',
-          password: 'p',
-          locale: 'l',
-          frameMax: 1,
-          heartbeat: 1,
-          vhost: '',
-        },
-        retryTimeout: 10,
-        exchange: {
-          type: 'fanout',
-        },
-      };
-
+      const params = createConstructorParams();
       const customClient = new RabbitMQClient(params);
       await customClient.connect();
 
@@ -111,6 +105,27 @@ describe('RabbitMQClient', () => {
 
       expect(mockChannel.assertExchange).toHaveBeenCalledWith('my-namespace', 'fanout', { durable: true });
     });
+
+    const durableTestCases = [
+      [undefined, true],
+      [true, true],
+      [false, false],
+    ];
+    for (const [passedValue, expectedValue] of durableTestCases) {
+      it(`should create an exchange with durable = ${expectedValue} when passing ${passedValue} `, async () => {
+        const customClient = new RabbitMQClient(createConstructorParams({
+          exchange: {
+            durable: passedValue,
+          },
+        }));
+
+        await customClient.connect();
+        customClient.publish('my-namespace', 1);
+        await sleep(testRetryTimeout);
+
+        expect(mockChannel.assertExchange).toHaveBeenCalledWith('my-namespace', 'fanout', expect.objectContaining({ durable: expectedValue }));
+      });
+    }
 
     it('should publish a message with empty routingKey in the newly created exchange', async () => {
       await client.connect();
@@ -253,7 +268,6 @@ describe('RabbitMQClient', () => {
       expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(2, mockQueue.queue, 'my-namespace', '');
     });
 
-
     it('should consume the newly recreated queues', async () => {
       await client.connect();
 
@@ -352,4 +366,3 @@ describe('RabbitMQClient', () => {
     });
   });
 });
-
