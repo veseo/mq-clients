@@ -16,6 +16,7 @@ type ExchangeType = (typeof ExchangeType)[keyof typeof ExchangeType];
 interface ExchangeConfig {
   type: ExchangeType;
   name?: string;
+  durable?: boolean;
 }
 
 interface RabbitMQConstructorParams {
@@ -146,7 +147,7 @@ class RabbitMQClient implements MQClient {
 
   private async createExchange(exchange: string) {
     const config = {
-      durable: true,
+      durable: this.exchangeConfig.durable ?? true,
     };
 
     if (this.isExchangeInDirectType()) {
