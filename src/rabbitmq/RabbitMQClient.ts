@@ -123,6 +123,7 @@ class RabbitMQClient implements MQClient {
       await this.setupConnection();
     } catch (err) {
       this.logError(err);
+      await this.sleep(this.retryTimeout);
       return this.setupConnectionLoop();
     }
   }
