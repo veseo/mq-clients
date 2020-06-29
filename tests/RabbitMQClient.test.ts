@@ -11,6 +11,7 @@ import {
   triggerMockConnectionListener,
   triggerMockChannelConsumer,
   resetMocks,
+  simulateShutdown,
 } from './mocks';
 
 import {
@@ -48,12 +49,13 @@ const noop = () => { };
 
 describe('RabbitMQClient', () => {
   let client: RabbitMQClient;
-  describe('Fanout specs', () => {
-    beforeEach(() => {
-      resetMocks();
-      client = new RabbitMQClient(createConstructorParams());
-    });
+  const constructorParams = createConstructorParams();
+  beforeEach(() => {
+    resetMocks();
+    client = new RabbitMQClient(constructorParams);
+  });
 
+  describe('Fanout specs', () => {
     const defaultConstructorParams = createConstructorParams();
     const testRetryTimeout = defaultConstructorParams.retryTimeout + 200;
 
@@ -335,7 +337,6 @@ describe('RabbitMQClient', () => {
     const testRetryTimeout = defaultConstructorParams.retryTimeout + 200;
 
     beforeEach(() => {
-      resetMocks();
       client = new RabbitMQClient(defaultConstructorParams);
     });
 
@@ -363,6 +364,35 @@ describe('RabbitMQClient', () => {
       await client.subscribe('my-namespace', noop);
 
       expect(mockChannel.bindQueue).toHaveBeenCalledWith(mockQueue.queue, 'direct-exchange', 'my-namespace');
+    });
+  });
+
+  describe('Reconnection', () => {
+    it('should attempt to recreate the connection once it was closed', async () => {
+      await client.connect();
+      mockAmqplib.connect.mockClear();
+      mockConnection.createChannel.mockClear();
+
+      simulateShutdown();
+      await sleep(100);
+
+      expect(mockAmqplib.connect).toHaveBeenCalledWith(constructorParams.amqp);
+      expect(mockConnection.createChannel).toHaveBeenCalled();
+    });
+
+    it('should recreate the existing queues as they were before the connection was closed', async () => {
+      await client.connect();
+      await client.subscribe('nsp1', noop);
+      await client.subscribe('nsp2', noop);
+      await client.subscribe('nsp3', noop);
+      mockChannel.bindQueue.mockClear();
+
+      simulateShutdown();
+      await sleep(100);
+
+      expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(1, expect.anything(), 'nsp1', expect.anything());
+      expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(2, expect.anything(), 'nsp2', expect.anything());
+      expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(3, expect.anything(), 'nsp3', expect.anything());
     });
   });
 });

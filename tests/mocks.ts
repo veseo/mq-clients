@@ -45,6 +45,14 @@ mockConnection.off.mockImplementation(function (event: string, callback: Functio
   return this;
 });
 
+mockConnection.emit = jest.fn();
+mockConnection.emit.mockImplementation(function (event: string, data: any) {
+  mockConnectionListeners
+    .filter((listener) => listener.event === event)
+    .forEach((listener) => listener.callback(data));
+  return this;
+});
+
 function triggerMockConnectionListener(event: string, data: any) {
   mockConnectionListeners
     .filter((listener) => listener.event === event)
@@ -65,6 +73,11 @@ function createMockQueue(name = 'mock-queue') {
 
 const mockAmqplib = amqplib as jest.Mocked<typeof amqplib>;
 
+function simulateShutdown() {
+  const connectionCloseErr: any = new Error('Connection closed: 320 (CONNECTION-FORCED) with message "CONNECTION_FORCED - broker forced connection closure with reason \'shutdown\'"');
+  connectionCloseErr.code = 320;
+  mockConnection.emit('close', connectionCloseErr);
+}
 
 function resetMocks() {
   mockAmqplib.connect.mockReset();
@@ -91,5 +104,6 @@ export {
   triggerMockChannelConsumer,
   createMockQueue,
   triggerMockConnectionListener,
+  simulateShutdown,
   resetMocks,
 };

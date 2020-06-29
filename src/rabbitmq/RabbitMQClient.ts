@@ -35,6 +35,7 @@ class RabbitMQClient implements MQClient {
   private connection: amqplib.Connection;
   private channel: amqplib.Channel;
   private hasBeenConnected: boolean;
+  private isReconnecting: boolean;
   private subscriptions: Map<string, Array<CallbackFunc>>;
   private queue: PQueue;
 
@@ -54,6 +55,7 @@ class RabbitMQClient implements MQClient {
     this.exchangeConfig = params.exchange;
 
     this.hasBeenConnected = false;
+    this.isReconnecting = false;
     this.subscriptions = new Map<string, Array<CallbackFunc>>();
     this.queue = new PQueue({ concurrency: 1 });
   }
@@ -87,11 +89,20 @@ class RabbitMQClient implements MQClient {
       throw new MQConnectionError(err.message);
     }
 
-    this.connection.off('error', this.handleConnectionError);
-    this.connection.on('error', this.handleConnectionError);
+    this.connection.off('error', this.handleConnectionCloseOrError);
+    this.connection.on('error', this.handleConnectionCloseOrError);
+
+    this.connection.off('close', this.handleConnectionCloseOrError);
+    this.connection.on('close', this.handleConnectionCloseOrError);
   }
 
-  private handleConnectionError = async () => {
+  private handleConnectionCloseOrError = async (err: any) => {
+    if (this.isReconnecting) {
+      return;
+    }
+
+    this.isReconnecting = true;
+    this.logError(err);
     this.connection = null;
     this.channel = null;
 
@@ -103,6 +114,8 @@ class RabbitMQClient implements MQClient {
         await this.createQueueAndBindItToExchange(namespace, callback);
       }
     }
+
+    this.isReconnecting = false;
   };
 
   private async setupConnectionLoop(): Promise<void> {
@@ -110,6 +123,7 @@ class RabbitMQClient implements MQClient {
       await this.setupConnection();
     } catch (err) {
       this.logError(err);
+      await this.sleep(this.retryTimeout);
       return this.setupConnectionLoop();
     }
   }
@@ -147,7 +161,7 @@ class RabbitMQClient implements MQClient {
 
   private async createExchange(exchange: string) {
     const config = {
-      durable: this.exchangeConfig.durable ?? true,
+      durable: this.exchangeConfig.durable !== undefined ? this.exchangeConfig.durable : true,
     };
 
     if (this.isExchangeInDirectType()) {
