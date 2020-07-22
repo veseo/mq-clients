@@ -19,9 +19,15 @@ interface ExchangeConfig {
   durable?: boolean;
 }
 
+interface QueueConfig {
+  name: string;
+  exclusive: boolean;
+}
+
 interface RabbitMQConstructorParams {
   amqp?: amqplib.Options.Connect;
   exchange: ExchangeConfig;
+  queue?: QueueConfig;
   retryTimeout?: number;
   debug?: boolean;
 }
@@ -31,6 +37,7 @@ class RabbitMQClient implements MQClient {
   private readonly retryTimeout: number;
   private readonly debug: boolean;
   private readonly exchangeConfig: ExchangeConfig;
+  private readonly queueConfig: QueueConfig;
 
   private connection: amqplib.Connection;
   private channel: amqplib.Channel;
@@ -53,6 +60,11 @@ class RabbitMQClient implements MQClient {
     }
 
     this.exchangeConfig = params.exchange;
+
+    this.queueConfig = params.queue ?? {
+      name: '',
+      exclusive: true,
+    };
 
     this.hasBeenConnected = false;
     this.isReconnecting = false;
@@ -188,7 +200,7 @@ class RabbitMQClient implements MQClient {
   }
 
   private async createQueueAndBindItToExchange(namespace: string, callback: Function) {
-    const queue = await this.channel.assertQueue('', { exclusive: true });
+    const queue = await this.channel.assertQueue(this.queueConfig.name, { exclusive: this.queueConfig.exclusive });
 
     if (this.isExchangeInDirectType()) {
       await this.channel.bindQueue(queue.queue, this.exchangeConfig.name, namespace);

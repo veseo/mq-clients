@@ -187,11 +187,24 @@ describe('RabbitMQClient', () => {
       expect(mockChannel.assertExchange).toHaveBeenCalledWith('my-namespace', 'fanout', { durable: true });
     });
 
-    it('should create an anonymous queue when calling subscribe', async () => {
+    it('should create an anonymous queue when calling subscribe (and no queue config was passed)', async () => {
       await client.connect();
       await client.subscribe('my-namespace', noop);
 
       expect(mockChannel.assertQueue).toHaveBeenCalledWith('', { exclusive: true });
+    });
+
+    it('should create a custom queue when the calling subscribe (and queue config was passed)', async () => {
+      const queueConfiguredClient = new RabbitMQClient(createConstructorParams({
+        queue: {
+          name: 'my-queue',
+          exclusive: false,
+        },
+      }));
+      await queueConfiguredClient.connect();
+      await queueConfiguredClient.subscribe('my-namespace', noop);
+
+      expect(mockChannel.assertQueue).toHaveBeenCalledWith('my-queue', { exclusive: false });
     });
 
     it('should bind the anonymous queue to the exchange using empty routingKey when calling subscribe', async () => {

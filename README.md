@@ -1,6 +1,10 @@
+[![Build Status](https://travis-ci.org/LuckboxGG/mq-clients.svg?branch=master)](https://travis-ci.org/LuckboxGG/mq-clients)
+
+[![Coverage Status](https://coveralls.io/repos/github/LuckboxGG/mq-clients/badge.svg?branch=master)](https://coveralls.io/github/LuckboxGG/mq-clients?branch=master)
+
 # Message Broker Clients
 
-A collection of message broker implementations. 
+A collection of message broker implementations.
 Each implementation must conform the unified interface, which defines a single client who acts as both publisher and subscriber.
 
 ### Installing
