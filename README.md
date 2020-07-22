@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/nikksan/mq-clients.svg?branch=message-replay)](https://travis-ci.org/nikksan/mq-clients)
+[![Build Status](https://travis-ci.org/LuckboxGG/mq-clients.svg?branch=master)](https://travis-ci.org/LuckboxGG/mq-clients)
 
-[![Coverage Status](https://coveralls.io/repos/github/nikksan/mq-clients/badge.svg?branch=message-replay)](https://coveralls.io/github/nikksan/mq-clients?branch=message-replay)
+[![Coverage Status](https://coveralls.io/repos/github/LuckboxGG/mq-clients/badge.svg?branch=master)](https://coveralls.io/github/LuckboxGG/mq-clients?branch=master)
 
 # Message Broker Clients
 
