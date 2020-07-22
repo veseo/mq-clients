@@ -19,7 +19,6 @@ import {
   RabbitMQConstructorParams,
   MQConnectionError,
 } from '../src/index';
-import { create } from 'core-js/fn/object';
 
 function createConstructorParams(overrides: DeepPartial<RabbitMQConstructorParams> = {}): RabbitMQConstructorParams {
   const defaultConstructorParams: RabbitMQConstructorParams = {
