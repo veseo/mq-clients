@@ -89,7 +89,7 @@ class RabbitMQClient implements MQClient {
 
     await this.saveSubscription(namespace, callback);
     await this.createExchange(namespace);
-    await this.createQueueAndBindItToExchange(namespace, callback);
+    await this.createQueueAndBindItToExchange(namespace);
   }
 
   private async setupConnection() {
@@ -121,10 +121,7 @@ class RabbitMQClient implements MQClient {
     await this.setupConnectionLoop();
 
     for (const namespace of this.subscriptions.keys()) {
-      const callbacks = this.subscriptions.get(namespace);
-      for (const callback of callbacks) {
-        await this.createQueueAndBindItToExchange(namespace, callback);
-      }
+      await this.createQueueAndBindItToExchange(namespace);
     }
 
     this.isReconnecting = false;
@@ -199,7 +196,7 @@ class RabbitMQClient implements MQClient {
     return new Promise((resolve) => setTimeout(resolve, msec));
   }
 
-  private async createQueueAndBindItToExchange(namespace: string, callback: Function) {
+  private async createQueueAndBindItToExchange(namespace: string) {
     const queue = await this.channel.assertQueue(this.queueConfig.name, { exclusive: this.queueConfig.exclusive });
 
     if (this.isExchangeInDirectType()) {
@@ -217,7 +214,12 @@ class RabbitMQClient implements MQClient {
         return;
       }
 
-      callback(parsed);
+      const callbacks = this.subscriptions.get(msg.fields.exchange);
+      if (callbacks && callbacks.length) {
+        for (const callback of callbacks) {
+          callback(parsed);
+        }
+      }
     }, { noAck: true });
   }
 
