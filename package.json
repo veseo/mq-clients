@@ -10,7 +10,7 @@
     "test:watch": "jest --watchAll --coverage=false",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "lint:staged": "lint-staged",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "precommit": "npm run lint:staged"
   },
   "keywords": [],
