@@ -87,7 +87,7 @@ class RabbitMQClient implements MQClient {
   async subscribe(namespace: string, callback: CallbackFunc) {
     assert(this.connection, 'You must connect() first!');
 
-    await this.saveSubscription(namespace, callback);
+    await this.saveSubscription(this.isExchangeInDirectType() ? this.exchangeConfig.name : namespace, callback);
     await this.createExchange(namespace);
     await this.createQueueAndBindItToExchange(namespace);
   }
@@ -158,14 +158,12 @@ class RabbitMQClient implements MQClient {
   }
 
   private saveSubscription(namespace: string, callback: CallbackFunc) {
-    if (!this.subscriptions.has(namespace)) {
-      this.subscriptions.set(namespace, []);
-    }
+    const callbacks = this.subscriptions.has(namespace)
+      ? this.subscriptions.get(namespace)
+      : [];
+    callbacks.push(callback);
 
-    this.subscriptions.set(namespace, [
-      ...this.subscriptions.get(namespace),
-      callback,
-    ]);
+    this.subscriptions.set(namespace, callbacks);
   }
 
   private async createExchange(exchange: string) {
