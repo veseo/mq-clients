@@ -228,22 +228,16 @@ describe('RabbitMQClient', () => {
     });
 
     it('should invoke the callback passed to subscribe when a message is received', async () => {
-      const directModeConfiguredClient = new RabbitMQClient(createConstructorParams({
-        exchange: {
-          type: 'direct',
-          name: 'my-exchange',
-        },
-      }));
       const mockQueue = createMockQueue();
       mockChannel.assertQueue.mockResolvedValueOnce(mockQueue);
 
-      await directModeConfiguredClient.connect();
+      await client.connect();
 
       const mockCallback = jest.fn();
       const dummyData = { bar: 'foo' };
-      await directModeConfiguredClient.subscribe('my-namespace', mockCallback);
+      await client.subscribe('my-namespace', mockCallback);
 
-      triggerMockChannelConsumer('my-exchange', mockQueue.queue, dummyData);
+      triggerMockChannelConsumer('my-namespace', '', mockQueue.queue, dummyData);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).toHaveBeenCalledWith(dummyData);
@@ -259,7 +253,7 @@ describe('RabbitMQClient', () => {
       await client.subscribe('my-namespace', mockCallback);
 
       const dummyData = 'not-a-valid-json';
-      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData, false);
+      triggerMockChannelConsumer('my-namespace', '', mockQueue.queue, dummyData, false);
       await sleep(testRetryTimeout);
     });
 
@@ -304,25 +298,6 @@ describe('RabbitMQClient', () => {
       expect(mockChannel.consume).toHaveBeenNthCalledWith(2, mockQueue.queue, expect.anything(), { noAck: true });
     });
 
-    it('should invoke the callback passed to subscribe when a message is received after a reconnect', async () => {
-      await client.connect();
-
-      const mockCallback = jest.fn();
-      await client.subscribe('my-namespace', mockCallback);
-
-      const mockQueue = createMockQueue('queue-2.0');
-      mockChannel.assertQueue.mockResolvedValue(mockQueue);
-
-      triggerMockConnectionListener('error', new Error('Something went wrong'));
-      await sleep(testRetryTimeout);
-
-      const dummyData = {};
-      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData);
-      await sleep(testRetryTimeout);
-
-      expect(mockCallback).toHaveBeenCalledWith(dummyData);
-    });
-
     it('should not invoke the callback passed to subscribe when a malformed message is received after a reconnect', async () => {
       await client.connect();
 
@@ -336,7 +311,7 @@ describe('RabbitMQClient', () => {
       await sleep(testRetryTimeout);
 
       const dummyData = 'not-a-valid-json';
-      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData, false);
+      triggerMockChannelConsumer('my-namespace', '', mockQueue.queue, dummyData, false);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).not.toHaveBeenCalled();
@@ -382,6 +357,41 @@ describe('RabbitMQClient', () => {
       await client.subscribe('my-namespace', noop);
 
       expect(mockChannel.bindQueue).toHaveBeenCalledWith(mockQueue.queue, 'direct-exchange', 'my-namespace');
+    });
+
+    it('should invoke the callback passed to subscribe when a message is received', async () => {
+      const mockQueue = createMockQueue();
+      mockChannel.assertQueue.mockResolvedValueOnce(mockQueue);
+
+      await client.connect();
+
+      const mockCallback = jest.fn();
+      const dummyData = { bar: 'foo' };
+      await client.subscribe('my-namespace', mockCallback);
+
+      triggerMockChannelConsumer('direct-exchange', 'my-namespace', mockQueue.queue, dummyData);
+      await sleep(testRetryTimeout);
+
+      expect(mockCallback).toHaveBeenCalledWith(dummyData);
+    });
+
+    it('should invoke only the callback associated to the particular routingKey', async () => {
+      const mockQueue = createMockQueue();
+      mockChannel.assertQueue.mockResolvedValueOnce(mockQueue);
+
+      await client.connect();
+
+      const mockCallback1 = jest.fn();
+      const mockCallback2 = jest.fn();
+      const dummyData = { bar: 'foo' };
+      await client.subscribe('my-namespace1', mockCallback1);
+      await client.subscribe('my-namespace2', mockCallback2);
+
+      triggerMockChannelConsumer('direct-exchange', 'my-namespace1', mockQueue.queue, dummyData);
+      await sleep(testRetryTimeout);
+
+      expect(mockCallback1).toHaveBeenCalledWith(dummyData);
+      expect(mockCallback2).not.toHaveBeenCalled();
     });
   });
 
