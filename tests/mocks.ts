@@ -15,12 +15,16 @@ mockChannel.consume.mockImplementation(function (queue: string, callback: Functi
   return this;
 });
 
-function triggerMockChannelConsumer(queue: string, data: any, serialize = true) {
+function triggerMockChannelConsumer(exchange: string, queue: string, data: any, serialize = true) {
   mockChannelConsumers
     .filter((consumer) => consumer.queue === queue)
     .forEach((consumer) => {
-      const message = {} as jest.Mocked<amqplib.Message>;
-      message.content = Buffer.from(serialize ? JSON.stringify(data) : data);
+      const message = {
+        content: Buffer.from(serialize ? JSON.stringify(data) : data),
+        fields: {
+          exchange,
+        },
+      } as jest.Mocked<amqplib.Message>;
       consumer.callback(message);
     });
 }

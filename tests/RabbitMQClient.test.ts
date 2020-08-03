@@ -237,7 +237,7 @@ describe('RabbitMQClient', () => {
       const dummyData = { bar: 'foo' };
       await client.subscribe('my-namespace', mockCallback);
 
-      triggerMockChannelConsumer(mockQueue.queue, dummyData);
+      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).toHaveBeenCalledWith(dummyData);
@@ -253,7 +253,7 @@ describe('RabbitMQClient', () => {
       await client.subscribe('my-namespace', mockCallback);
 
       const dummyData = 'not-a-valid-json';
-      triggerMockChannelConsumer(mockQueue.queue, dummyData, false);
+      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData, false);
       await sleep(testRetryTimeout);
     });
 
@@ -265,9 +265,8 @@ describe('RabbitMQClient', () => {
       triggerMockConnectionListener('error', new Error('Something went wrong'));
       await sleep(testRetryTimeout);
 
-      expect(mockChannel.assertQueue).toHaveBeenCalledTimes(4);
+      expect(mockChannel.assertQueue).toHaveBeenCalledTimes(3);
       expect(mockChannel.assertQueue).toHaveBeenNthCalledWith(3, '', { exclusive: true });
-      expect(mockChannel.assertQueue).toHaveBeenNthCalledWith(4, '', { exclusive: true });
     });
 
     it('should bind the newly created queues to the exchange', async () => {
@@ -312,7 +311,7 @@ describe('RabbitMQClient', () => {
       await sleep(testRetryTimeout);
 
       const dummyData = {};
-      triggerMockChannelConsumer(mockQueue.queue, dummyData);
+      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).toHaveBeenCalledWith(dummyData);
@@ -331,7 +330,7 @@ describe('RabbitMQClient', () => {
       await sleep(testRetryTimeout);
 
       const dummyData = 'not-a-valid-json';
-      triggerMockChannelConsumer(mockQueue.queue, dummyData, false);
+      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData, false);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).not.toHaveBeenCalled();
