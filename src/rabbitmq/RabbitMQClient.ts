@@ -87,7 +87,11 @@ class RabbitMQClient implements MQClient {
   async subscribe(namespace: string, callback: CallbackFunc) {
     assert(this.connection, 'You must connect() first!');
 
-    await this.saveSubscription(this.isExchangeInDirectType() ? this.exchangeConfig.name : namespace, callback);
+    const subscriptionKey = this.isExchangeInDirectType()
+      ? `${this.exchangeConfig.name}#${namespace}`
+      : namespace;
+
+    await this.saveSubscription(subscriptionKey, callback);
     await this.createExchange(namespace);
     await this.createQueueAndBindItToExchange(namespace);
   }
@@ -157,13 +161,13 @@ class RabbitMQClient implements MQClient {
     await this.queue.add(tryToSendMessageLoop);
   }
 
-  private saveSubscription(namespace: string, callback: CallbackFunc) {
-    const callbacks = this.subscriptions.has(namespace)
-      ? this.subscriptions.get(namespace)
+  private saveSubscription(key: string, callback: CallbackFunc) {
+    const callbacks = this.subscriptions.has(key)
+      ? this.subscriptions.get(key)
       : [];
     callbacks.push(callback);
 
-    this.subscriptions.set(namespace, callbacks);
+    this.subscriptions.set(key, callbacks);
   }
 
   private async createExchange(exchange: string) {
@@ -212,7 +216,11 @@ class RabbitMQClient implements MQClient {
         return;
       }
 
-      const callbacks = this.subscriptions.get(msg.fields.exchange);
+      const subscriptionKey = this.isExchangeInDirectType()
+        ? `${msg.fields.exchange}#${msg.fields.routingKey}`
+        : msg.fields.exchange;
+
+      const callbacks = this.subscriptions.get(subscriptionKey);
       if (callbacks && callbacks.length) {
         for (const callback of callbacks) {
           callback(parsed);

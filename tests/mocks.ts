@@ -15,7 +15,7 @@ mockChannel.consume.mockImplementation(function (queue: string, callback: Functi
   return this;
 });
 
-function triggerMockChannelConsumer(exchange: string, queue: string, data: any, serialize = true) {
+function triggerMockChannelConsumer(exchange: string, routingKey: string, queue: string, data: any, serialize = true) {
   mockChannelConsumers
     .filter((consumer) => consumer.queue === queue)
     .forEach((consumer) => {
@@ -23,6 +23,7 @@ function triggerMockChannelConsumer(exchange: string, queue: string, data: any, 
         content: Buffer.from(serialize ? JSON.stringify(data) : data),
         fields: {
           exchange,
+          routingKey,
         },
       } as jest.Mocked<amqplib.Message>;
       consumer.callback(message);
