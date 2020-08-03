@@ -228,16 +228,22 @@ describe('RabbitMQClient', () => {
     });
 
     it('should invoke the callback passed to subscribe when a message is received', async () => {
+      const directModeConfiguredClient = new RabbitMQClient(createConstructorParams({
+        exchange: {
+          type: 'direct',
+          name: 'my-exchange',
+        },
+      }));
       const mockQueue = createMockQueue();
       mockChannel.assertQueue.mockResolvedValueOnce(mockQueue);
 
-      await client.connect();
+      await directModeConfiguredClient.connect();
 
       const mockCallback = jest.fn();
       const dummyData = { bar: 'foo' };
-      await client.subscribe('my-namespace', mockCallback);
+      await directModeConfiguredClient.subscribe('my-namespace', mockCallback);
 
-      triggerMockChannelConsumer('my-namespace', mockQueue.queue, dummyData);
+      triggerMockChannelConsumer('my-exchange', mockQueue.queue, dummyData);
       await sleep(testRetryTimeout);
 
       expect(mockCallback).toHaveBeenCalledWith(dummyData);
@@ -317,7 +323,7 @@ describe('RabbitMQClient', () => {
       expect(mockCallback).toHaveBeenCalledWith(dummyData);
     });
 
-    it('should not invoke the callback passed to subscribe when a maformed message is received after a reconnect', async () => {
+    it('should not invoke the callback passed to subscribe when a malformed message is received after a reconnect', async () => {
       await client.connect();
 
       const mockCallback = jest.fn();
