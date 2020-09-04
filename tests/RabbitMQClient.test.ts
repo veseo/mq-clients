@@ -424,7 +424,7 @@ describe('RabbitMQClient', () => {
     });
   });
 
-  describe.only('Unsubscribe', () => {
+  describe('Unsubscribe', () => {
     it('should throw AssertionError when calling without connecting first', async () => {
       await expect(client.unsubscribe()).rejects.toThrow(AssertionError);
     });
@@ -433,6 +433,14 @@ describe('RabbitMQClient', () => {
       await client.connect();
 
       await expect(client.unsubscribe()).rejects.toThrow(AssertionError);
+    });
+
+    it('should close the channel', async () => {
+      await client.connect();
+      await client.subscribe('nsp', noop);
+      await client.unsubscribe();
+
+      expect(mockChannel.close).toHaveBeenCalled();
     });
 
     it('should close the connection', async () => {

@@ -100,6 +100,8 @@ class RabbitMQClient implements MQClient {
     assert(this.connection, 'You must connect() first!');
     assert(this.subscriptions.size, 'You must subscribe() first!');
 
+    this.connection.off('close', this.handleConnectionCloseOrError);
+    await this.channel.close();
     await this.connection.close();
   }
 
