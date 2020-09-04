@@ -96,6 +96,15 @@ class RabbitMQClient implements MQClient {
     await this.createQueueAndBindItToExchange(namespace);
   }
 
+  async unsubscribe() {
+    assert(this.connection, 'You must connect() first!');
+    assert(this.subscriptions.size, 'You must subscribe() first!');
+
+    this.connection.off('close', this.handleConnectionCloseOrError);
+    await this.channel.close();
+    await this.connection.close();
+  }
+
   private async setupConnection() {
     try {
       this.connection = await amqplib.connect(this.amqpConfig);

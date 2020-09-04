@@ -8,6 +8,7 @@ mockChannel.publish = jest.fn();
 mockChannel.assertQueue = jest.fn();
 mockChannel.bindQueue = jest.fn();
 mockChannel.consume = jest.fn();
+mockChannel.close = jest.fn();
 
 let mockChannelConsumers: Array<any> = [];
 mockChannel.consume.mockImplementation(function (queue: string, callback: Function) {
@@ -58,6 +59,8 @@ mockConnection.emit.mockImplementation(function (event: string, data: any) {
   return this;
 });
 
+mockConnection.close = jest.fn();
+
 function triggerMockConnectionListener(event: string, data: any) {
   mockConnectionListeners
     .filter((listener) => listener.event === event)
@@ -86,13 +89,16 @@ function simulateShutdown() {
 
 function resetMocks() {
   mockAmqplib.connect.mockReset();
+
   mockConnection.createChannel.mockReset();
+  mockConnection.close.mockReset();
 
   mockChannel.assertExchange.mockReset();
   mockChannel.publish.mockReset();
   mockChannel.assertQueue.mockReset();
   mockChannel.bindQueue.mockReset();
   mockChannel.consume.mockClear();
+  mockChannel.close.mockClear();
 
   resetMockConnectionListeners();
   resetMockChannelConsumers();

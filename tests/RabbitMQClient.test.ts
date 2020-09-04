@@ -423,4 +423,32 @@ describe('RabbitMQClient', () => {
       expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(3, expect.anything(), 'nsp3', expect.anything());
     });
   });
+
+  describe('Unsubscribe', () => {
+    it('should throw AssertionError when calling without connecting first', async () => {
+      await expect(client.unsubscribe()).rejects.toThrow(AssertionError);
+    });
+
+    it('should throw AssertionError when calling without subscribing first', async () => {
+      await client.connect();
+
+      await expect(client.unsubscribe()).rejects.toThrow(AssertionError);
+    });
+
+    it('should close the channel', async () => {
+      await client.connect();
+      await client.subscribe('nsp', noop);
+      await client.unsubscribe();
+
+      expect(mockChannel.close).toHaveBeenCalled();
+    });
+
+    it('should close the connection', async () => {
+      await client.connect();
+      await client.subscribe('nsp', noop);
+      await client.unsubscribe();
+
+      expect(mockConnection.close).toHaveBeenCalled();
+    });
+  });
 });
