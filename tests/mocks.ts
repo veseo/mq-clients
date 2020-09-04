@@ -58,6 +58,8 @@ mockConnection.emit.mockImplementation(function (event: string, data: any) {
   return this;
 });
 
+mockConnection.close = jest.fn();
+
 function triggerMockConnectionListener(event: string, data: any) {
   mockConnectionListeners
     .filter((listener) => listener.event === event)
@@ -86,7 +88,9 @@ function simulateShutdown() {
 
 function resetMocks() {
   mockAmqplib.connect.mockReset();
+
   mockConnection.createChannel.mockReset();
+  mockConnection.close.mockReset();
 
   mockChannel.assertExchange.mockReset();
   mockChannel.publish.mockReset();

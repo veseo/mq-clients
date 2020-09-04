@@ -7,6 +7,7 @@ interface MQClient {
   connect(): Promise<void>;
   publish(namespace: string, data: DataPayload): void;
   subscribe(namespace: string, callback: CallbackFunc): Promise<void>;
+  unsubscribe(): Promise<void>;
 }
 
 export {
