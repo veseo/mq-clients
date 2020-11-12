@@ -16,12 +16,12 @@ import {
 
 import {
   RabbitMQClient,
-  RabbitMQConstructorParams,
+  RabbitMQClientConstructorParams,
   MQConnectionError,
 } from '../src/index';
 
-function createConstructorParams(overrides: DeepPartial<RabbitMQConstructorParams> = {}): RabbitMQConstructorParams {
-  const defaultConstructorParams: RabbitMQConstructorParams = {
+function createConstructorParams(overrides: DeepPartial<RabbitMQClientConstructorParams> = {}): RabbitMQClientConstructorParams {
+  const defaultConstructorParams: RabbitMQClientConstructorParams = {
     retryTimeout: 100,
     exchange: {
       type: 'fanout',
@@ -319,7 +319,7 @@ describe('RabbitMQClient', () => {
   });
 
   describe('Direct specs', () => {
-    const defaultConstructorParams: RabbitMQConstructorParams = {
+    const defaultConstructorParams: RabbitMQClientConstructorParams = {
       retryTimeout: 100,
       exchange: {
         type: 'direct',

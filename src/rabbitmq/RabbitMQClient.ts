@@ -24,7 +24,7 @@ interface QueueConfig {
   exclusive: boolean;
 }
 
-interface RabbitMQConstructorParams {
+interface ConstructorParams {
   amqp?: amqplib.Options.Connect;
   exchange: ExchangeConfig;
   queue?: QueueConfig;
@@ -46,7 +46,7 @@ class RabbitMQClient implements MQClient {
   private subscriptions: Map<string, Array<CallbackFunc>>;
   private queue: PQueue;
 
-  constructor(params: RabbitMQConstructorParams) {
+  constructor(params: ConstructorParams) {
     this.amqpConfig = params.amqp !== undefined ? params.amqp : {};
     this.retryTimeout = params.retryTimeout !== undefined ? params.retryTimeout : 10000;
     this.debug = params.debug !== undefined ? params.debug : true;
@@ -255,5 +255,5 @@ class RabbitMQClient implements MQClient {
 
 export {
   RabbitMQClient,
-  RabbitMQConstructorParams, // eslint-disable-line no-undef
+  ConstructorParams as RabbitMQClientConstructorParams, // eslint-disable-line no-undef
 };
