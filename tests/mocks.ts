@@ -10,6 +10,27 @@ mockChannel.bindQueue = jest.fn();
 mockChannel.consume = jest.fn();
 mockChannel.close = jest.fn();
 
+let mockChannelListeners: Array<any> = [];
+mockChannel.on = jest.fn();
+mockChannel.on.mockImplementation(function (event: string, callback: Function) {
+  mockChannelListeners.push({ event, callback });
+  return this;
+});
+
+mockChannel.off = jest.fn();
+mockChannel.off.mockImplementation(function (event: string, callback: Function) {
+  mockChannelListeners = mockChannelListeners.filter((listener) => !(listener.event === event && listener.callback === callback));
+  return this;
+});
+
+mockChannel.emit = jest.fn();
+mockChannel.emit.mockImplementation(function (event: string, data: any) {
+  mockChannelListeners
+    .filter((listener) => listener.event === event)
+    .forEach((listener) => listener.callback(data));
+  return this;
+});
+
 let mockChannelConsumers: Array<any> = [];
 mockChannel.consume.mockImplementation(function (queue: string, callback: Function) {
   mockChannelConsumers.push({ queue, callback });
@@ -71,6 +92,10 @@ function resetMockConnectionListeners() {
   mockConnectionListeners = [];
 }
 
+function resetMockChannelListeners() {
+  mockChannelListeners = [];
+}
+
 function createMockQueue(name = 'mock-queue') {
   const mockQueue = {
     queue: name,
@@ -81,10 +106,18 @@ function createMockQueue(name = 'mock-queue') {
 
 const mockAmqplib = amqplib as jest.Mocked<typeof amqplib>;
 
-function simulateShutdown() {
+function simulateConnectionProblem() {
   const connectionCloseErr: any = new Error('Connection closed: 320 (CONNECTION-FORCED) with message "CONNECTION_FORCED - broker forced connection closure with reason \'shutdown\'"');
   connectionCloseErr.code = 320;
-  mockConnection.emit('close', connectionCloseErr);
+  mockConnection.emit('error', connectionCloseErr);
+  mockConnection.emit('close');
+}
+
+function simulateChannelProblem() {
+  const connectionCloseErr: any = new Error('Connection closed: 320 (CONNECTION-FORCED) with message "CONNECTION_FORCED - broker forced connection closure with reason \'shutdown\'"');
+  connectionCloseErr.code = 320;
+  mockChannel.emit('error', connectionCloseErr);
+  mockChannel.emit('close');
 }
 
 function resetMocks() {
@@ -102,6 +135,7 @@ function resetMocks() {
 
   resetMockConnectionListeners();
   resetMockChannelConsumers();
+  resetMockChannelListeners();
 
   mockAmqplib.connect.mockResolvedValue(mockConnection);
   mockConnection.createChannel.mockResolvedValue(mockChannel);
@@ -115,6 +149,7 @@ export {
   triggerMockChannelConsumer,
   createMockQueue,
   triggerMockConnectionListener,
-  simulateShutdown,
   resetMocks,
+  simulateConnectionProblem,
+  simulateChannelProblem,
 };

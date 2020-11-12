@@ -100,7 +100,7 @@ class RabbitMQClient implements MQClient {
     assert(this.connection, 'You must connect() first!');
     assert(this.subscriptions.size, 'You must subscribe() first!');
 
-    this.connection.off('close', this.handleConnectionCloseOrError);
+    this.connection.off('close', this.handleConnectionOrChannelProblem);
     await this.channel.close();
     await this.connection.close();
   }
@@ -114,14 +114,18 @@ class RabbitMQClient implements MQClient {
       throw new MQConnectionError(err.message);
     }
 
-    this.connection.off('error', this.handleConnectionCloseOrError);
-    this.connection.on('error', this.handleConnectionCloseOrError);
+    this.connection.off('error', this.handleConnectionOrChannelProblem);
+    this.connection.on('error', this.handleConnectionOrChannelProblem);
+    this.connection.off('close', this.handleConnectionOrChannelProblem);
+    this.connection.on('close', this.handleConnectionOrChannelProblem);
 
-    this.connection.off('close', this.handleConnectionCloseOrError);
-    this.connection.on('close', this.handleConnectionCloseOrError);
+    this.channel.off('error', this.handleConnectionOrChannelProblem);
+    this.channel.on('error', this.handleConnectionOrChannelProblem);
+    this.channel.off('close', this.handleConnectionOrChannelProblem);
+    this.channel.on('close', this.handleConnectionOrChannelProblem);
   }
 
-  private handleConnectionCloseOrError = async (err: any) => {
+  private handleConnectionOrChannelProblem = async (err: any) => {
     if (this.isReconnecting) {
       return;
     }

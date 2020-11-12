@@ -11,7 +11,8 @@ import {
   triggerMockConnectionListener,
   triggerMockChannelConsumer,
   resetMocks,
-  simulateShutdown,
+  simulateConnectionProblem,
+  simulateChannelProblem,
 } from './mocks';
 
 import {
@@ -395,27 +396,30 @@ describe('RabbitMQClient', () => {
     });
   });
 
-  describe('Reconnection', () => {
-    it('should attempt to recreate the connection once it was closed', async () => {
+  describe.each([
+    simulateConnectionProblem,
+    simulateChannelProblem,
+  ])('Reconnection', (simulateProblem) => {
+    it(`should attempt to recreate the connection once it was closed after ${simulateProblem.name}`, async () => {
       await client.connect();
       mockAmqplib.connect.mockClear();
       mockConnection.createChannel.mockClear();
 
-      simulateShutdown();
+      simulateProblem();
       await sleep(100);
 
       expect(mockAmqplib.connect).toHaveBeenCalledWith(constructorParams.amqp);
       expect(mockConnection.createChannel).toHaveBeenCalled();
     });
 
-    it('should recreate the existing queues as they were before the connection was closed', async () => {
+    it(`should recreate the existing queues as they were before the connection was closed after ${simulateProblem.name}`, async () => {
       await client.connect();
       await client.subscribe('nsp1', noop);
       await client.subscribe('nsp2', noop);
       await client.subscribe('nsp3', noop);
       mockChannel.bindQueue.mockClear();
 
-      simulateShutdown();
+      simulateProblem();
       await sleep(100);
 
       expect(mockChannel.bindQueue).toHaveBeenNthCalledWith(1, expect.anything(), 'nsp1', expect.anything());
