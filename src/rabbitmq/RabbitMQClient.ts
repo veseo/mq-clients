@@ -24,7 +24,7 @@ interface QueueConfig {
   exclusive: boolean;
 }
 
-interface RabbitMQConstructorParams {
+interface ConstructorParams {
   amqp?: amqplib.Options.Connect;
   exchange: ExchangeConfig;
   queue?: QueueConfig;
@@ -46,9 +46,9 @@ class RabbitMQClient implements MQClient {
   private subscriptions: Map<string, Array<CallbackFunc>>;
   private queue: PQueue;
 
-  constructor(params: RabbitMQConstructorParams) {
+  constructor(params: ConstructorParams) {
     this.amqpConfig = params.amqp !== undefined ? params.amqp : {};
-    this.retryTimeout = params.retryTimeout !== undefined ? params.retryTimeout : 10000;
+    this.retryTimeout = params.retryTimeout !== undefined ? params.retryTimeout : 1000;
     this.debug = params.debug !== undefined ? params.debug : true;
 
     if (params.exchange.type === ExchangeType.Direct) {
@@ -100,7 +100,7 @@ class RabbitMQClient implements MQClient {
     assert(this.connection, 'You must connect() first!');
     assert(this.subscriptions.size, 'You must subscribe() first!');
 
-    this.connection.off('close', this.handleConnectionCloseOrError);
+    this.connection.off('close', this.handleConnectionOrChannelProblem);
     await this.channel.close();
     await this.connection.close();
   }
@@ -114,14 +114,18 @@ class RabbitMQClient implements MQClient {
       throw new MQConnectionError(err.message);
     }
 
-    this.connection.off('error', this.handleConnectionCloseOrError);
-    this.connection.on('error', this.handleConnectionCloseOrError);
+    this.connection.off('error', this.handleConnectionOrChannelProblem);
+    this.connection.on('error', this.handleConnectionOrChannelProblem);
+    this.connection.off('close', this.handleConnectionOrChannelProblem);
+    this.connection.on('close', this.handleConnectionOrChannelProblem);
 
-    this.connection.off('close', this.handleConnectionCloseOrError);
-    this.connection.on('close', this.handleConnectionCloseOrError);
+    this.channel.off('error', this.handleConnectionOrChannelProblem);
+    this.channel.on('error', this.handleConnectionOrChannelProblem);
+    this.channel.off('close', this.handleConnectionOrChannelProblem);
+    this.channel.on('close', this.handleConnectionOrChannelProblem);
   }
 
-  private handleConnectionCloseOrError = async (err: any) => {
+  private handleConnectionOrChannelProblem = async (err: any) => {
     if (this.isReconnecting) {
       return;
     }
@@ -255,5 +259,6 @@ class RabbitMQClient implements MQClient {
 
 export {
   RabbitMQClient,
-  RabbitMQConstructorParams, // eslint-disable-line no-undef
+  // eslint-disable-next-line no-undef
+  ConstructorParams as RabbitMQClientConstructorParams,
 };
