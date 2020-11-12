@@ -48,7 +48,7 @@ class RabbitMQClient implements MQClient {
 
   constructor(params: ConstructorParams) {
     this.amqpConfig = params.amqp !== undefined ? params.amqp : {};
-    this.retryTimeout = params.retryTimeout !== undefined ? params.retryTimeout : 10000;
+    this.retryTimeout = params.retryTimeout !== undefined ? params.retryTimeout : 1000;
     this.debug = params.debug !== undefined ? params.debug : true;
 
     if (params.exchange.type === ExchangeType.Direct) {
