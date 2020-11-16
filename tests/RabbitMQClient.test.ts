@@ -18,7 +18,6 @@ import {
 import {
   RabbitMQClient,
   RabbitMQClientConstructorParams,
-  MQConnectionError,
 } from '../src/index';
 
 function createConstructorParams(overrides: DeepPartial<RabbitMQClientConstructorParams> = {}): RabbitMQClientConstructorParams {
@@ -83,18 +82,6 @@ describe('RabbitMQClient', () => {
       await customClient.connect();
 
       expect(mockAmqplib.connect).toHaveBeenCalledWith(params.amqp);
-    });
-
-    it('should throw MQConnectionError when amqplib.connect throws', async () => {
-      mockAmqplib.connect.mockRejectedValueOnce(new Error('Failed to connect!'));
-
-      await expect(client.connect()).rejects.toThrow(MQConnectionError);
-    });
-
-    it('should throw MQConnectionError when connection.createChannel throws', async () => {
-      mockConnection.createChannel.mockRejectedValueOnce(new Error('Failed to create channel!'));
-
-      await expect(client.connect()).rejects.toThrow(MQConnectionError);
     });
 
     it('should throw AssertionError when calling it without connecting first', async () => {
