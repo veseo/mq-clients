@@ -3,7 +3,6 @@ import amqplib from 'amqplib';
 import PQueue from 'p-queue';
 
 import { MQClient, DataPayload, CallbackFunc } from '../MQClient';
-import { MQConnectionError } from '../errors';
 import makeEnum from '../utils/makeEnum';
 
 const ExchangeType = makeEnum({
@@ -42,9 +41,10 @@ class RabbitMQClient implements MQClient {
   private connection: amqplib.Connection;
   private channel: amqplib.Channel;
   private hasBeenConnected: boolean;
-  private isReconnecting: boolean;
   private subscriptions: Map<string, Array<CallbackFunc>>;
   private queue: PQueue;
+  private setupConnectionPromise: Promise<void>;
+  private hasManuallyUnsubscribed: boolean;
 
   constructor(params: ConstructorParams) {
     this.amqpConfig = params.amqp !== undefined ? params.amqp : {};
@@ -67,9 +67,10 @@ class RabbitMQClient implements MQClient {
     };
 
     this.hasBeenConnected = false;
-    this.isReconnecting = false;
     this.subscriptions = new Map<string, Array<CallbackFunc>>();
     this.queue = new PQueue({ concurrency: 1 });
+    this.setupConnectionPromise = null;
+    this.hasManuallyUnsubscribed = false;
   }
 
   async connect(): Promise<void> {
@@ -100,20 +101,44 @@ class RabbitMQClient implements MQClient {
     assert(this.connection, 'You must connect() first!');
     assert(this.subscriptions.size, 'You must subscribe() first!');
 
-    this.connection.off('close', this.handleConnectionOrChannelProblem);
+    this.hasManuallyUnsubscribed = true;
     await this.channel.close();
     await this.connection.close();
   }
 
-  private async setupConnection() {
-    try {
-      this.connection = await amqplib.connect(this.amqpConfig);
-      this.channel = await this.connection.createChannel();
-    } catch (err) {
-      this.logError(err);
-      throw new MQConnectionError(err.message);
+  private async setupConnection(): Promise<void> {
+    if (this.setupConnectionPromise) {
+      return this.setupConnectionPromise;
     }
 
+    const setupConnectionLoop = async (): Promise<void> => {
+      try {
+        await this.createConnectionAndChannel();
+        this.bindListeners();
+        await this.recreateSubscriptions();
+      } catch (err) {
+        this.logError(err);
+        await this.sleep(this.retryTimeout);
+        return setupConnectionLoop();
+      }
+    };
+
+    // eslint-disable-next-line no-async-promise-executor
+    this.setupConnectionPromise = new Promise(async (resolve) => {
+      await setupConnectionLoop();
+      this.setupConnectionPromise = null;
+      resolve();
+    });
+
+    return this.setupConnectionPromise;
+  }
+
+  private async createConnectionAndChannel() {
+    this.connection = await amqplib.connect(this.amqpConfig);
+    this.channel = await this.connection.createChannel();
+  }
+
+  private bindListeners() {
     this.connection.off('error', this.handleConnectionOrChannelProblem);
     this.connection.on('error', this.handleConnectionOrChannelProblem);
     this.connection.off('close', this.handleConnectionOrChannelProblem);
@@ -125,49 +150,37 @@ class RabbitMQClient implements MQClient {
     this.channel.on('close', this.handleConnectionOrChannelProblem);
   }
 
-  private handleConnectionOrChannelProblem = async (err: any) => {
-    if (this.isReconnecting) {
+  private handleConnectionOrChannelProblem = async (err?: Error) => {
+    if (this.hasManuallyUnsubscribed) {
       return;
     }
 
-    this.isReconnecting = true;
-    this.logError(err);
-    this.connection = null;
-    this.channel = null;
-
-    await this.setupConnectionLoop();
-
-    for (const namespace of this.subscriptions.keys()) {
-      await this.createQueueAndBindItToExchange(namespace);
+    if (err) {
+      this.logError(err);
     }
 
-    this.isReconnecting = false;
+    await this.setupConnection();
   };
 
-  private async setupConnectionLoop(): Promise<void> {
-    try {
-      await this.setupConnection();
-    } catch (err) {
-      this.logError(err);
-      await this.sleep(this.retryTimeout);
-      return this.setupConnectionLoop();
+  private async recreateSubscriptions() {
+    for (const [namespace] of this.subscriptions) {
+      await this.createExchange(namespace);
+      await this.createQueueAndBindItToExchange(namespace);
     }
   }
 
   private async publishSynchronously(namespace: string, data: any) {
     const tryToSendMessageLoop = async (): Promise<void> => {
-      if (this.channel) {
-        try {
-          await this.createExchange(namespace);
-          await this.publishDataInExchange(data, namespace);
+      try {
+        await this.createExchange(namespace);
+        await this.publishDataInExchange(data, namespace);
 
-          return;
-        } catch (err) {
-          this.logError(err);
-        }
+        return;
+      } catch (err) {
+        this.logError(err);
+        await this.setupConnection();
       }
 
-      await this.sleep(this.retryTimeout);
       return tryToSendMessageLoop();
     };
 
