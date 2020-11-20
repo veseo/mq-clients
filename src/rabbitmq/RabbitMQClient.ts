@@ -172,13 +172,13 @@ class RabbitMQClient implements MQClient {
   private async publishSynchronously(namespace: string, data: any) {
     const tryToSendMessageLoop = async (): Promise<void> => {
       try {
-        await this.createExchange(namespace);
         await this.publishDataInExchange(data, namespace);
 
         return;
       } catch (err) {
         this.logError(err);
         await this.setupConnection();
+        await this.createExchange(namespace);
       }
 
       return tryToSendMessageLoop();
